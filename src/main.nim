@@ -51,14 +51,23 @@ var lvl = 0
 
 var mode = Play
 
-var prompt =
-  Prompt(w: 96, h: 96,
-         text: "LVL[" & $lvl & "]",
-         options: @["CONTINUE",
-                    "RESTART",
-                    "EXIT"],
-         idx: 0,
-         active: false)
+var
+  prompt =
+    Prompt(w: 96, h: 96,
+          text: "=PAUSE MODE=",
+          options: @["CONTINUE",
+                     "RESTART",
+                     "EXIT"],
+          idx: 0,
+          active: false)
+
+  menu =
+    Prompt(w: screenWidth, h: screenHeight,
+           text: "DOOR-O-BOT",
+           options: @["START",
+                      "EXIT"],
+           idx: 0,
+           active: true)
 
 
 template tileAt(x, y: typed): uint8 =
@@ -95,6 +104,32 @@ proc isDoor(x, y: int): bool =
   let tile = tileAt(x, y)
   fget(tile, 1)
 
+proc drawPrompt(p: Prompt) =
+  let
+    x = cx + (screenWidth - p.w) div 2
+    y = cy + (screenHeight - p.h) div 2
+  setColor(13)
+  boxfill(x, y, p.w, p.h)
+  setColor(0)
+  boxfill(x + 4, y + 4, p.w - 8, p.h - 8)
+  setColor(11)
+  printc(p.text, x + p.w div 2, y + 8)
+  for i, txt in p.options:
+    let my = cy + (p.h - 10 * p.options.len) + 10 * i
+    print(txt, x + 8, my)
+    if i == p.idx:
+      printc(">", x + 6, my)
+
+proc updatePrompt(p: var Prompt) =
+  let didx =
+    if btnp(pcDown): 1
+    elif btnp(pcUp): -1
+    else: 0
+
+  if didx != 0:
+    p.idx = wrap(p.idx + didx, p.options.len)
+    synth(0, synP25, 300, 15, -2, 12)
+
 proc initLvl(lvl: int) =
   loadMap(0, &"levels/lvl{lvl}.json")
   setMap(0)
@@ -106,6 +141,9 @@ proc initLvl(lvl: int) =
   
   prompt.active = false
   prompt.idx = 0
+  
+  if mode != Play:
+    mode = Play
 
 proc gameInit() =
   loadFont(0, "font.png")
@@ -131,22 +169,13 @@ proc gameInit() =
 proc gameUpdate(dt: float32) =
   case mode
   of Menu:
-    let didx =
-      if btnp(pcDown): 1
-      elif btnp(pcUp): -1
-      else: 0
-
-    if didx != 0:
-      prompt.idx = wrap(prompt.idx + didx, prompt.options.len)
-      synth(0, synP25, 300, 15, -2, 12)
-
+    updatePrompt(prompt)
     if btnp(pcA):
       case prompt.options[prompt.idx]:
       of "CONTINUE":
         mode = Play
       of "RESTART":
         initLvl(lvl)
-        mode = Play
       of "EXIT":
         shutdown()
 
@@ -238,20 +267,7 @@ proc gameDraw() =
 
   case mode
   of Menu:
-    let
-      x = cx + (screenWidth - prompt.w) div 2
-      y = cy + (screenHeight - prompt.h) div 2
-    setColor(13)
-    boxfill(x, y, prompt.w, prompt.h)
-    setColor(0)
-    boxfill(x + 4, y + 4, prompt.w - 8, prompt.h - 8)
-    setColor(11)
-    printc(prompt.text, x + prompt.w div 2, y + 8)
-    for i, txt in prompt.options:
-      let my = cy + (prompt.h - 8 * prompt.options.len) + 10 * i
-      print(txt, x + 8, my)
-      if i == prompt.idx:
-        printc(">", x + 6, my)
+    drawPrompt(prompt)
   of Select:
     let color =
       if fget( tileAt(cursor.x, cursor.y), 1): 11
@@ -261,6 +277,30 @@ proc gameDraw() =
   of Play:
     discard
 
+proc menuInit() =
+  loadFont(0, "font.png")
+  loadMusic(0, "mainmenu.ogg")
+  musicVol(127)
+  sfxVol(64)
+  music(15, 0)
+
+proc menuUpdate(dt: float32) =
+  updatePrompt(menu)
+  if btnp(pcA):
+    case menu.options[menu.idx]:
+    of "START":
+      nico.run(gameInit, gameUpdate, gameDraw)
+    of "EXIT":
+      shutdown()
+
+proc menuDraw() =
+  cls()
+  drawPrompt(menu)
+  rrect(16 + 5, 16 + 5, screenWidth - 24, screenHeight - 32)
+  circfill(54, screenHeight - 64, 4)
+  circfill(72, screenHeight - 64, 4)
+  line(64, 16 + 5, 64, screenHeight - 32)
+  
 nico.init("IDF", "Door-o-Bot")
 nico.createWindow("Door-o-Bot", 128, 128, 4, false)
-nico.run(gameInit, gameUpdate, gameDraw)
+nico.run(menuInit, menuUpdate, menuDraw)
