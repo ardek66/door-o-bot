@@ -261,6 +261,6 @@ proc gameDraw() =
   of Play:
     discard
 
-nico.init("myOrg", "myApp")
-nico.createWindow("myApp", 128, 128, 4, false)
+nico.init("IDF", "Door-o-Bot")
+nico.createWindow("Door-o-Bot", 128, 128, 4, false)
 nico.run(gameInit, gameUpdate, gameDraw)
