@@ -68,6 +68,18 @@ var
                       "EXIT"],
            idx: 0,
            active: true)
+  epilog =
+    Prompt(w: screenWidth, h: screenHeight,
+           text: "Epilogue",
+           options: @["You have reached the end",
+                      "This game was made for",
+                      "8x8 Game Jam 2",
+                      "I had a lot of fun making it",
+                      "and I plan to add more levels",
+                      "And maybe an endless mode",
+                      "So stay tuned and press Z!"],
+           idx: 6,
+           active: true)
 
 
 template tileAt(x, y: typed): uint8 =
@@ -104,6 +116,16 @@ proc isDoor(x, y: int): bool =
   let tile = tileAt(x, y)
   fget(tile, 1)
 
+proc updatePrompt(p: var Prompt) =
+  let didx =
+    if btnp(pcDown): 1
+    elif btnp(pcUp): -1
+    else: 0
+
+  if didx != 0:
+    p.idx = wrap(p.idx + didx, p.options.len)
+    synth(0, synP25, 300, 15, -2, 12)
+
 proc drawPrompt(p: Prompt) =
   let
     x = cx + (screenWidth - p.w) div 2
@@ -120,16 +142,6 @@ proc drawPrompt(p: Prompt) =
     if i == p.idx:
       printc(">", x + 6, my)
 
-proc updatePrompt(p: var Prompt) =
-  let didx =
-    if btnp(pcDown): 1
-    elif btnp(pcUp): -1
-    else: 0
-
-  if didx != 0:
-    p.idx = wrap(p.idx + didx, p.options.len)
-    synth(0, synP25, 300, 15, -2, 12)
-
 proc initLvl(lvl: int) =
   loadMap(0, &"levels/lvl{lvl}.json")
   setMap(0)
@@ -144,6 +156,13 @@ proc initLvl(lvl: int) =
   
   if mode != Play:
     mode = Play
+
+proc menuInit()
+proc menuUpdate(dt: float32)
+proc menuDraw()
+proc epilogInit()
+proc epilogUpdate(dt: float32)
+proc epilogDraw()
 
 proc gameInit() =
   loadFont(0, "font.png")
@@ -177,7 +196,7 @@ proc gameUpdate(dt: float32) =
       of "RESTART":
         initLvl(lvl)
       of "EXIT":
-        shutdown()
+        nico.run(menuInit, menuUpdate, menuDraw)
 
       synth(0, synSqr, 510, 10, 2, 8) 
   of Play:
@@ -212,7 +231,9 @@ proc gameUpdate(dt: float32) =
         if lvl < 4:
           lvl += 1
           initLvl(lvl)
-        synth(0, synSqr, 220, 5, 2, 12)
+          synth(0, synSqr, 220, 5, 2, 12)
+        else:
+          nico.run(epilogInit, epilogUpdate, epilogDraw)
       else: discard
 
     if btnp(pcStart):
@@ -300,6 +321,19 @@ proc menuDraw() =
   circfill(54, screenHeight - 64, 4)
   circfill(72, screenHeight - 64, 4)
   line(64, 16 + 5, 64, screenHeight - 32)
+
+proc epilogInit() =
+  loadFont(0, "font.png")
+  sfxVol(64)
+
+proc epilogUpdate(dt: float32) =
+  updatePrompt(epilog)
+  if btnp(pcA):
+    nico.run(menuInit, menuUpdate, menuDraw)
+
+proc epilogDraw() =
+  cls()
+  drawPrompt(epilog)
   
 nico.init("IDF", "Door-o-Bot")
 nico.createWindow("Door-o-Bot", 128, 128, 4, false)
