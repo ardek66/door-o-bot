@@ -3,10 +3,8 @@ import strformat
 
 const
   colors = 3
-  levels = 2
 const
   Wall = 1'u8
-  Floor = 2'u8
   Spawn = 3'u8
   End = 4'u8
   Switch = 5'u8
