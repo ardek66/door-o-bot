@@ -1,4 +1,4 @@
-APPNAME = tactibot
+APPNAME = doorobot
 NIMC=nim c
 NIMJS=nim js
 SOURCES = $(shell ls src/*.nim)
