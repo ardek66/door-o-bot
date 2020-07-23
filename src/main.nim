@@ -49,6 +49,8 @@ var lvl = 0
 
 var mode = Play
 
+var introBlink = 0'f32
+
 var
   prompt =
     Prompt(w: 96, h: 96,
@@ -78,7 +80,6 @@ var
                       "So stay tuned and press Z!"],
            idx: 6,
            active: true)
-
 
 template tileAt(x, y: typed): uint8 =
   mget(x div 8, y div 8)
@@ -163,12 +164,8 @@ proc epilogUpdate(dt: float32)
 proc epilogDraw()
 
 proc gameInit() =
-  loadFont(0, "font.png")
-  loadSpritesheet(0, "spritesheet.png")
-  loadMusic(0, "switchnditch.ogg")
-  sfxVol(64)
-  musicVol(127)
-  music(15, 0)
+  initLvl(0)
+  music(15, 1)
   fset(Wall, SolidFlag)
   fset(Spawn, SpawnFlag)
   fset(Terminal, TermFlag)
@@ -180,7 +177,6 @@ proc gameInit() =
       fset(t, DoorFlag)
   for t in Switch..<Switch + colors:
     fset(t, SwitchFlag)
-
   initLvl(lvl)
 
 proc gameUpdate(dt: float32) =
@@ -281,7 +277,7 @@ proc gameDraw() =
   cls()
   setCamera(cx, cy)
   setColor(6)
-  mapDraw(0, 0, 32, 32, 0, 0)
+  mapDraw(0, 0, mapWidth(), mapHeight(), 0, 0)
   spr(0, player.x, player.y)
 
   case mode
@@ -297,10 +293,6 @@ proc gameDraw() =
     discard
 
 proc menuInit() =
-  loadFont(0, "font.png")
-  loadMusic(0, "mainmenu.ogg")
-  musicVol(127)
-  sfxVol(64)
   music(15, 0)
 
 proc menuUpdate(dt: float32) =
@@ -332,7 +324,36 @@ proc epilogUpdate(dt: float32) =
 proc epilogDraw() =
   cls()
   drawPrompt(epilog)
-  
+
+
+proc introInit() =
+  loadFont(0, "font.png")
+  loadMusic(0, "mainmenu.ogg")
+  loadMusic(1, "switchnditch.ogg")
+  loadSpritesheet(0, "spritesheet.png")
+  musicVol(127)
+  sfxVol(64)
+
+proc introUpdate(dt: float32) =
+  introBlink += dt
+  if btnp(pcStart):
+    nico.run(menuInit, menuUpdate, menuDraw)
+
+proc introDraw() =
+  cls()
+  setColor(11)
+  printc("IDF04 Presents", screenWidth div 2, screenHeight div 4)
+  printc("A Game Made For", screenWidth div 2, screenHeight div 4 + 16)
+  printc("8x8 Game Jam #2", screenWidth div 2, screenHeight div 4 + 32)
+  setColor(3)
+  printc("1st In Gameplay", screenWidth div 2, screenHeight div 4 + 40)
+  printc("4th Overall :D", screenWidth div 2, screenHeight div 4 + 48)
+  if introBlink <= 0.75:
+    setColor(8)
+    printc("PRESS START", screenWidth div 2, screenHeight - 16)
+  elif introBlink >= 1.5:
+    introBlink = 0
+
 nico.init("IDF", "Door-o-Bot")
 nico.createWindow("Door-o-Bot", 128, 128, 4, false)
-nico.run(menuInit, menuUpdate, menuDraw)
+nico.run(introInit, introUpdate, introDraw)
